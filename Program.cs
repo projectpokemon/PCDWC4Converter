@@ -1,6 +1,6 @@
 ﻿using PCDWC4Converter;
 
-Console.WriteLine("PCDWC4Converter v1.0 by Sabresite");
+Console.WriteLine("PCDWC4Converter v1.1 by Sabresite");
 
 if (args.Length == 0)
 {
@@ -36,51 +36,8 @@ if (files.Length == 0)
     return;
 }
 
-// All PCD data
-Span<byte> fileData = stackalloc byte[856];
+Console.WriteLine($"Found {files.Length} files to convert...");
 
-for (var i = 0; i < files.Length; i++)
-{
-    var file = files[i];
-    using (var fs = file.OpenRead())
-    {
-        var bytesRead = fs.Read(fileData);
-        if (bytesRead != 856)
-        {
-            Console.WriteLine("Failed to read file {0}", file.FullName);
-            continue;
-        }
-    }
+Parallel.ForEach(files, WC4Data.ProcessWC4File);
 
-    var newExtension = "";
-
-    switch (file.Extension)
-    {
-        case ".pcd":
-            {
-                PokemonData.DecryptData(fileData[8..]);
-                newExtension = ".wc4";
-                break;
-            }
-        case ".wc4":
-            {
-                PokemonData.EncryptData(fileData[8..]);
-                newExtension = ".pcd";
-                break;
-            }
-    }
-
-    var newFilePath = Path.Join(file.DirectoryName, $"{file.Name[..^file.Extension.Length]}{newExtension}");
-    Console.WriteLine("New File {0}", newFilePath);
-    try
-    {
-        File.Delete(newFilePath);
-        using var writer = new FileStream(newFilePath, FileMode.Create, FileAccess.Write, FileShare.None);
-        writer.Write(fileData);
-    }
-    catch (Exception e)
-    {
-        Console.WriteLine("Failed to write file {0}", newFilePath);
-        Console.WriteLine(e);
-    }
-}
+Console.WriteLine("Conversion complete.");
